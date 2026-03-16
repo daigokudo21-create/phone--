@@ -1,33 +1,38 @@
 import requests
-import statistics
+from bs4 import BeautifulSoup
 
 def get_price(model):
 
-    url = f"https://api.mercari.com/items/search?keyword={model}&status=on_sale"
+    url = f"https://jp.mercari.com/search?keyword={model}&status=sold_out"
 
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
-    r = requests.get(url, headers=headers)
-
-    try:
-        data = r.json()
-    except:
-        return None
-
     prices = []
 
-    for item in data.get("data", [])[:20]:
+    try:
 
-        price = item.get("price")
+        r = requests.get(url, headers=headers, timeout=10)
 
-        if price:
-            prices.append(price)
+        soup = BeautifulSoup(r.text, "html.parser")
 
-    if len(prices) < 5:
-        return None
+        for p in soup.select("span[data-testid='price']"):
 
-    median_price = statistics.median(prices)
+            try:
+                price = int(p.text.replace("¥","").replace(",",""))
+                prices.append(price)
+            except:
+                pass
 
-    return median_price
+    except:
+        return 0
+
+    if len(prices) == 0:
+        return 0
+
+    prices.sort()
+
+    avg = sum(prices[:10]) / min(len(prices),10)
+
+    return int(avg)
