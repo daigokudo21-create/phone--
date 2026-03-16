@@ -1,46 +1,45 @@
 import requests
 from bs4 import BeautifulSoup
 
-def get_yahoo_items():
+def search_yahoo(keyword):
 
-    url = "https://auctions.yahoo.co.jp/search/search?p=iphone+ジャンク"
+    url = f"https://auctions.yahoo.co.jp/search/search?p={keyword}&fixed_price=1"
 
     headers = {
         "User-Agent": "Mozilla/5.0"
     }
 
-    r = requests.get(url, headers=headers)
-
-    soup = BeautifulSoup(r.text, "html.parser")
-
     items = []
 
-    listings = soup.select("li.Product")
+    try:
 
-    for item in listings:
+        r = requests.get(url, headers=headers, timeout=10)
 
-        title_tag = item.select_one("h3.Product__title")
-        price_tag = item.select_one("span.Product__priceValue")
-        link_tag = item.select_one("a")
+        soup = BeautifulSoup(r.text, "html.parser")
 
-        if not title_tag or not price_tag:
-            continue
+        listings = soup.select("li.Product")
 
-        title = title_tag.text.strip()
+        for item in listings[:10]:
 
-        price = price_tag.text.replace("円", "").replace(",", "")
+            try:
 
-        try:
-            price = int(price)
-        except:
-            continue
+                title = item.select_one("h3").text.strip()
 
-        url = "https://auctions.yahoo.co.jp" + link_tag["href"]
+                price = item.select_one(".Product__priceValue").text
+                price = int(price.replace("円","").replace(",",""))
 
-        items.append({
-            "title": title,
-            "price": price,
-            "url": url
-        })
+                link = item.select_one("a")["href"]
+
+                items.append({
+                    "title": title,
+                    "price": price,
+                    "url": link
+                })
+
+            except:
+                pass
+
+    except:
+        pass
 
     return items
