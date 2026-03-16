@@ -12,34 +12,37 @@ def search_yahoo(keyword):
     items = []
 
     try:
-
-        r = requests.get(url, headers=headers, timeout=10)
-
-        soup = BeautifulSoup(r.text, "html.parser")
+        res = requests.get(url, headers=headers, timeout=10)
+        soup = BeautifulSoup(res.text, "html.parser")
 
         listings = soup.select("li.Product")
 
-        for item in listings[:10]:
+        for item in listings:
 
-            try:
+            title_tag = item.select_one("h3")
+            price_tag = item.select_one(".Product__priceValue")
+            link_tag = item.select_one("a")
 
-                title = item.select_one("h3").text.strip()
+            if title_tag and price_tag and link_tag:
 
-                price = item.select_one(".Product__priceValue").text
-                price = int(price.replace("円","").replace(",",""))
+                title = title_tag.text.strip()
 
-                link = item.select_one("a")["href"]
+                price_text = price_tag.text.replace("円","").replace(",","")
+
+                try:
+                    price = int(price_text)
+                except:
+                    price = 0
+
+                url = link_tag["href"]
 
                 items.append({
                     "title": title,
                     "price": price,
-                    "url": link
+                    "url": url
                 })
 
-            except:
-                pass
+        return items
 
     except:
-        pass
-
-    return items
+        return []
